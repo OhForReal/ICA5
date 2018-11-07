@@ -77,7 +77,7 @@ class UpdateModelForDatasetId(BaseHandler):
         if l:
             c1.fit(f,l) # training
             lstar = c1.predict(f)
-            self.clf = c1
+            self.clf[dsid] = c1
             acc = sum(lstar==l)/float(len(l))
             bytes = pickle.dumps(c1)
             self.db.models.update({"dsid":dsid},
@@ -87,6 +87,7 @@ class UpdateModelForDatasetId(BaseHandler):
         # send back the resubstitution accuracy
         # if training takes a while, we are blocking tornado!! No!!
         self.write_json({"resubAccuracy":acc})
+        
 
 class PredictOneFromDatasetId(BaseHandler):
     def post(self):
@@ -101,9 +102,9 @@ class PredictOneFromDatasetId(BaseHandler):
 
         # load the model from the database (using pickle)
         # we are blocking tornado!! no!!
-        if(self.clf == []):
+        if(self.clf[dsid] == []):
             print('Loading Model From DB')
             tmp = self.db.models.find_one({"dsid":dsid})
-            self.clf = pickle.loads(tmp['model'])
-        predLabel = self.clf.predict(fvals);
+            self.clf[dsid] = pickle.loads(tmp['model'])
+        predLabel = self.clf[dsid].predict(fvals);
         self.write_json({"prediction":str(predLabel)})
